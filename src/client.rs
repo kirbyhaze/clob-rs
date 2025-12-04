@@ -24,6 +24,14 @@ const L0: u8 = 0;
 const L1: u8 = 1;
 const L2: u8 = 2;
 
+// TODO:
+// for hashmap structs (tick_size/neg_rist/fee_rates)
+// we require &mut self for the entire struct which is not necessary since we are just
+// modifying tick_size (via insert())
+// we need to constantly do sometihng like Arc::new() on clobclient if we want 
+// to do sometihng non-trivial with different tasks
+// either have a rwlock or this might work if so it is preffered https://docs.rs/dashmap/latest/dashmap/
+// https://docs.rs/tokio/latest/tokio/sync/struct.RwLock.html
 pub struct ClobClient {
     host: String,
     chain_id: u64,
@@ -49,7 +57,7 @@ impl ClobClient {
         Self {
             host,
             chain_id: crate::config::CHAIN_ID,
-            http: Client::new(),
+            http: Client::new(), //TODO: connection pool?
             signer: None,
             creds: None,
             order_builder: None,
@@ -589,7 +597,7 @@ impl ClobClient {
 
         let mut url = format!("{}{}", self.host, endpoints::ORDERS);
 
-        // Add query params
+        // TODO: this is veryhacky and we'd rather use serde to searlize these
         let mut query_parts = Vec::new();
         if let Some(p) = params {
             if let Some(id) = &p.id {
@@ -714,6 +722,9 @@ impl ClobClient {
     }
 
     // ========== Internal HTTP helpers ==========
+    // TODO: refactor out all these different gets / puts / deletes method into one
+    // there would just be one request() where it takes in authlevel and you have a match
+    // case to write specific headers based on the auth
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T> {
         let url = format!("{}{}", self.host, path);
@@ -728,6 +739,7 @@ impl ClobClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
+            // TODO: some better error handling would be nice instead of plain string
             return Err(ClobError::Api {
                 message: format!("HTTP {}: {}", status, body),
             });

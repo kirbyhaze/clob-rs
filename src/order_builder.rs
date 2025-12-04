@@ -143,6 +143,8 @@ fn to_token_decimals(x: f64) -> u64 {
     scaled.round() as u64
 }
 
+// TODO: this is in the order path as well which is called everytime
+// there might be optimizations here since it allocates a string 
 fn decimal_places(x: f64) -> u32 {
     let s = format!("{}", x);
     if let Some(pos) = s.find('.') {
@@ -264,6 +266,8 @@ impl OrderBuilder {
         }
     }
 
+    //TODO: domain separators are computed on every order/signature
+    //these are computed on every order creation and uncessary maybe some type of lazylock
     fn domain_separator(&self, exchange: &str, chain_id: u64) -> B256 {
         let type_hash = keccak256(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)",
@@ -396,6 +400,8 @@ impl OrderBuilder {
         let hash = keccak256(&message);
         let signature = self.signer.sign_hash(hash).await?;
 
+        //TODO: there are to many to_string or even clone calls here, could be room to optimize
+        // this is in the order path
         Ok(SignedOrder {
             salt: salt.to_string(),
             maker: self.funder.to_checksum(None),

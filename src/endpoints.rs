@@ -1,4 +1,10 @@
 //https://github.com/Polymarket/py-clob-client/blob/main/py_clob_client/endpoints.py
+
+
+/*
+* TODO: ORDERS for batch ordering is not implemented fully
+*
+*/
 pub const TIME: &str = "/time";
 pub const GET_ORDER_BOOK: &str = "/book";
 pub const GET_ORDER_BOOKS: &str = "/books";
