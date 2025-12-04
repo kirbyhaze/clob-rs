@@ -1,3 +1,4 @@
+```rust
 use clob_rs::{
     ApiCreds, ClobClient, OrderArgs, OrderType, Side, POLY_PROXY,
 };
@@ -32,3 +33,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+```

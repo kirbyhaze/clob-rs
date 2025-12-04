@@ -1,3 +1,4 @@
+```rust
 use clob_rs::{BookParams, ClobClient, Side};
 
 #[tokio::main]
@@ -46,4 +47,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
+```
