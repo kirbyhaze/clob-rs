@@ -29,6 +29,185 @@ where
     Ok(opt.unwrap_or_default())
 }
 
+pub const ZERO_ADDRESS: &str = "0x0000000000000000000000000000000000000000";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiCreds {
+    #[serde(rename = "apiKey")]
+    pub api_key: String,
+    #[serde(rename = "secret")]
+    pub api_secret: String,
+    #[serde(rename = "passphrase")]
+    pub api_passphrase: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum OrderType {
+    #[default]
+    GTC,
+    FOK,
+    GTD,
+}
+
+impl std::fmt::Display for OrderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderType::GTC => write!(f, "GTC"),
+            OrderType::FOK => write!(f, "FOK"),
+            OrderType::GTD => write!(f, "GTD"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OrderArgs {
+    pub token_id: String,
+    pub price: f64,
+    pub size: f64,
+    pub side: Side,
+    pub fee_rate_bps: i32,
+    pub nonce: u64,
+    pub expiration: u64,
+    pub taker: String,
+}
+
+impl OrderArgs {
+    pub fn new(token_id: impl Into<String>, price: f64, size: f64, side: Side) -> Self {
+        Self {
+            token_id: token_id.into(),
+            price,
+            size,
+            side,
+            fee_rate_bps: 0,
+            nonce: 0,
+            expiration: 0,
+            taker: ZERO_ADDRESS.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MarketOrderArgs {
+    pub token_id: String,
+    pub amount: f64,
+    pub side: Side,
+    pub price: f64,
+    pub fee_rate_bps: i32,
+    pub nonce: u64,
+    pub taker: String,
+    pub order_type: OrderType,
+}
+
+impl MarketOrderArgs {
+    pub fn new(token_id: impl Into<String>, amount: f64, side: Side) -> Self {
+        Self {
+            token_id: token_id.into(),
+            amount,
+            side,
+            price: 0.0,
+            fee_rate_bps: 0,
+            nonce: 0,
+            taker: ZERO_ADDRESS.to_string(),
+            order_type: OrderType::FOK,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TradeParams {
+    pub id: Option<String>,
+    pub maker_address: Option<String>,
+    pub market: Option<String>,
+    pub asset_id: Option<String>,
+    pub before: Option<u64>,
+    pub after: Option<u64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct OpenOrderParams {
+    pub id: Option<String>,
+    pub market: Option<String>,
+    pub asset_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AssetType {
+    COLLATERAL,
+    CONDITIONAL,
+}
+
+impl std::fmt::Display for AssetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssetType::COLLATERAL => write!(f, "COLLATERAL"),
+            AssetType::CONDITIONAL => write!(f, "CONDITIONAL"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BalanceAllowanceParams {
+    pub asset_type: Option<AssetType>,
+    pub token_id: Option<String>,
+    pub signature_type: Option<i32>, // signature_type: 1 is polymarket proxy wallet
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceAllowanceResponse {
+    pub balance: String,
+    pub allowances: std::collections::HashMap<String, String>,
+}
+
+impl BalanceAllowanceResponse {
+    pub fn balance_raw(&self) -> u128 {
+        self.balance.parse().unwrap_or(0)
+    }
+
+    pub fn balance_usdc(&self) -> f64 {
+        self.balance_raw() as f64 / 1_000_000.0
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OrderScoringParams {
+    pub order_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct OrdersScoringParams {
+    pub order_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropNotificationParams {
+    pub ids: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateOrderOptions {
+    pub tick_size: TickSize,
+    pub neg_risk: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PartialCreateOrderOptions {
+    pub tick_size: Option<TickSize>,
+    pub neg_risk: Option<bool>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct RoundConfig {
+    pub price: u32,
+    pub size: u32,
+    pub amount: u32,
+}
+
+pub struct ContractConfig {
+    pub exchange: &'static str,
+    pub collateral: &'static str,
+    pub conditional_tokens: &'static str,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderSummary {
     pub price: String,
@@ -121,7 +300,8 @@ where
         serde_json::Value::Number(n) => n.to_string(),
         _ => return Err(serde::de::Error::custom("expected string or number")),
     };
-    TickSize::from_str(&s).ok_or_else(|| serde::de::Error::custom(format!("unknown tick size: {}", s)))
+    s.parse()
+        .map_err(|_| serde::de::Error::custom(format!("unknown tick size: {}", s)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -344,14 +524,18 @@ impl TickSize {
             TickSize::Size0_0001 => 0.0001,
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for TickSize {
+    type Err = ();
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "0.1" => Some(TickSize::Size0_1),
-            "0.01" => Some(TickSize::Size0_01),
-            "0.001" => Some(TickSize::Size0_001),
-            "0.0001" => Some(TickSize::Size0_0001),
-            _ => None,
+            "0.1" => Ok(TickSize::Size0_1),
+            "0.01" => Ok(TickSize::Size0_01),
+            "0.001" => Ok(TickSize::Size0_001),
+            "0.0001" => Ok(TickSize::Size0_0001),
+            _ => Err(()),
         }
     }
 }

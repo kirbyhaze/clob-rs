@@ -1,10 +1,7 @@
-// API endpoint paths for Polymarket CLOB
-
+//https://github.com/Polymarket/py-clob-client/blob/main/py_clob_client/endpoints.py
 pub const TIME: &str = "/time";
-
 pub const GET_ORDER_BOOK: &str = "/book";
 pub const GET_ORDER_BOOKS: &str = "/books";
-
 pub const MID_POINT: &str = "/midpoint";
 pub const MID_POINTS: &str = "/midpoints";
 pub const PRICE: &str = "/price";
@@ -13,14 +10,32 @@ pub const SPREAD: &str = "/spread";
 pub const SPREADS: &str = "/spreads";
 pub const LAST_TRADE_PRICE: &str = "/last-trade-price";
 pub const LAST_TRADES_PRICES: &str = "/last-trades-prices";
-
 pub const TICK_SIZE: &str = "/tick-size";
 pub const NEG_RISK: &str = "/neg-risk";
 pub const FEE_RATE: &str = "/fee-rate";
-
 pub const MARKETS: &str = "/markets";
 pub const MARKET: &str = "/markets/";
 pub const SIMPLIFIED_MARKETS: &str = "/simplified-markets";
 pub const SAMPLING_MARKETS: &str = "/sampling-markets";
 pub const SAMPLING_SIMPLIFIED_MARKETS: &str = "/sampling-simplified-markets";
 pub const MARKET_TRADES_EVENTS: &str = "/live-activity/events/";
+pub const CREATE_API_KEY: &str = "/auth/api-key";
+pub const DERIVE_API_KEY: &str = "/auth/derive-api-key";
+pub const GET_API_KEYS: &str = "/auth/api-keys";
+pub const DELETE_API_KEY: &str = "/auth/api-key";
+pub const CLOSED_ONLY: &str = "/auth/ban-status/closed-only";
+pub const POST_ORDER: &str = "/order";
+pub const POST_ORDERS: &str = "/orders";
+pub const CANCEL: &str = "/order";
+pub const CANCEL_ORDERS: &str = "/orders";
+pub const CANCEL_ALL: &str = "/cancel-all";
+pub const CANCEL_MARKET_ORDERS: &str = "/cancel-market-orders";
+pub const GET_ORDER: &str = "/data/order/";
+pub const ORDERS: &str = "/data/orders";
+pub const TRADES: &str = "/data/trades";
+pub const GET_NOTIFICATIONS: &str = "/notifications";
+pub const DROP_NOTIFICATIONS: &str = "/notifications";
+pub const GET_BALANCE_ALLOWANCE: &str = "/balance-allowance";
+pub const UPDATE_BALANCE_ALLOWANCE: &str = "/balance-allowance/update";
+pub const IS_ORDER_SCORING: &str = "/order-scoring";
+pub const ARE_ORDERS_SCORING: &str = "/orders-scoring";
