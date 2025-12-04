@@ -84,7 +84,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match client.get_midpoints(&params).await {
         Ok(mids) => {
             for mid in mids {
-                println!("  Token {}: {:?}", &mid.token_id[..20], mid.mid);
+                println!("  Token {}...: {:?}", &mid.token_id[..20], mid.mid);
+            }
+        }
+        Err(e) => println!("  Error: {}", e),
+    }
+    println!();
+
+    // Batch prices
+    println!("Fetching batch prices...");
+    let params = vec![BookParams::with_side(token_id, Side::Buy)];
+    match client.get_prices(&params).await {
+        Ok(prices) => {
+            for p in prices {
+                println!("  Token {}...: BUY={:?}, SELL={:?}", &p.token_id[..20], p.buy, p.sell);
+            }
+        }
+        Err(e) => println!("  Error: {}", e),
+    }
+    println!();
+
+    // Batch spreads
+    println!("Fetching batch spreads...");
+    let params = vec![BookParams::new(token_id)];
+    match client.get_spreads(&params).await {
+        Ok(spreads) => {
+            for s in spreads {
+                println!("  Token {}...: {:?}", &s.token_id[..20], s.spread);
+            }
+        }
+        Err(e) => println!("  Error: {}", e),
+    }
+    println!();
+
+    // Last trades prices
+    println!("Fetching last trades prices...");
+    let params = vec![BookParams::new(token_id)];
+    match client.get_last_trades_prices(&params).await {
+        Ok(prices) => {
+            for p in prices {
+                println!("  Token {}...: {} @ {}", &p.token_id[..20], p.side, p.price);
             }
         }
         Err(e) => println!("  Error: {}", e),
@@ -99,13 +138,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("  Next cursor: {}", resp.next_cursor);
             if let Some(market) = resp.data.first() {
                 println!("  First market:");
-                println!("    Condition ID: {}", market.condition_id);
-                println!("    Tokens: {:?}", market.tokens.len());
-                println!("    Active: {}", market.active);
+                println!("    Condition ID: {}...", &market.condition_id[..20]);
+                println!("    Question: {:?}", market.question.as_ref().map(|s| if s.len() > 50 { format!("{}...", &s[..50]) } else { s.clone() }));
+                println!("    Tokens: {}", market.tokens.len());
+                println!("    Active: {}, Closed: {}", market.active, market.closed);
+                println!("    Tick size: {}", market.minimum_tick_size);
             }
         }
         Err(e) => println!("  Error: {}", e),
     }
+
+    println!("\nAll tests completed!");
 
     Ok(())
 }

@@ -5,8 +5,8 @@ pub enum ClobError {
     #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
-    #[error("JSON parsing failed: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error("JSON error: {message}")]
+    Json { message: String },
 
     #[error("API error: {message}")]
     Api { message: String },

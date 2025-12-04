@@ -1,7 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_aux::field_attributes::deserialize_number_from_string;
 
-/// Deserialize a string that may be a number into f64
 fn deserialize_string_to_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
     D: Deserializer<'de>,
@@ -10,7 +8,7 @@ where
     s.parse::<f64>().map_err(serde::de::Error::custom)
 }
 
-/// Deserialize optional string to Option<f64>
+#[allow(dead_code)]
 fn deserialize_optional_string_to_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
 where
     D: Deserializer<'de>,
@@ -22,9 +20,14 @@ where
     }
 }
 
-// ============================================================================
-// Order Book Types
-// ============================================================================
+fn deserialize_null_to_empty_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    let opt: Option<Vec<T>> = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderSummary {
@@ -84,10 +87,6 @@ impl OrderBook {
     }
 }
 
-// ============================================================================
-// Price/Market Data Types
-// ============================================================================
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MidpointResponse {
     #[serde(deserialize_with = "deserialize_string_to_f64")]
@@ -108,7 +107,21 @@ pub struct SpreadResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TickSizeResponse {
-    pub minimum_tick_size: String,
+    #[serde(deserialize_with = "deserialize_tick_size")]
+    pub minimum_tick_size: TickSize,
+}
+
+fn deserialize_tick_size<'de, D>(deserializer: D) -> Result<TickSize, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: serde_json::Value = Deserialize::deserialize(deserializer)?;
+    let s = match value {
+        serde_json::Value::String(s) => s,
+        serde_json::Value::Number(n) => n.to_string(),
+        _ => return Err(serde::de::Error::custom("expected string or number")),
+    };
+    TickSize::from_str(&s).ok_or_else(|| serde::de::Error::custom(format!("unknown tick size: {}", s)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,18 +141,14 @@ pub struct LastTradePriceResponse {
     pub price: f64,
 }
 
-/// Server time is returned as a raw integer timestamp
+// Server time is returned as a raw integer timestamp
 pub type ServerTime = u64;
-
-// ============================================================================
-// Batch Request/Response Types
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookParams {
     pub token_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub side: Option<String>,
+    pub side: Option<Side>,
 }
 
 impl BookParams {
@@ -150,54 +159,58 @@ impl BookParams {
         }
     }
 
-    pub fn with_side(token_id: impl Into<String>, side: impl Into<String>) -> Self {
+    pub fn with_side(token_id: impl Into<String>, side: Side) -> Self {
         Self {
             token_id: token_id.into(),
-            side: Some(side.into()),
+            side: Some(side),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct BatchMidpointResponse {
     pub token_id: String,
-    #[serde(deserialize_with = "deserialize_optional_string_to_f64", default)]
     pub mid: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct BatchPriceResponse {
     pub token_id: String,
-    #[serde(deserialize_with = "deserialize_optional_string_to_f64", default)]
-    pub price: Option<f64>,
+    pub buy: Option<f64>,
+    pub sell: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct BatchSpreadResponse {
     pub token_id: String,
-    #[serde(deserialize_with = "deserialize_optional_string_to_f64", default)]
     pub spread: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BatchLastTradePriceResponse {
+pub struct LastTradesPriceEntry {
     pub token_id: String,
-    #[serde(deserialize_with = "deserialize_optional_string_to_f64", default)]
-    pub price: Option<f64>,
+    pub side: String,
+    #[serde(deserialize_with = "deserialize_string_to_f64")]
+    pub price: f64,
 }
-
-// ============================================================================
-// Market Types
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Token {
     pub token_id: String,
     pub outcome: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub price: f64,
     #[serde(default)]
     pub winner: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketRewards {
+    #[serde(default)]
+    pub rates: Option<serde_json::Value>,
+    #[serde(default)]
+    pub min_size: f64,
+    #[serde(default)]
+    pub max_spread: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,20 +218,56 @@ pub struct Market {
     pub condition_id: String,
     pub question_id: String,
     pub tokens: Vec<Token>,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub min_incentive_size: f64,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub max_incentive_spread: f64,
+    #[serde(default)]
+    pub enable_order_book: bool,
     pub active: bool,
     pub closed: bool,
     #[serde(default)]
+    pub archived: bool,
+    #[serde(default)]
     pub accepting_orders: bool,
+    #[serde(default)]
+    pub accepting_order_timestamp: Option<String>,
+    #[serde(default)]
+    pub minimum_order_size: f64,
+    #[serde(default)]
+    pub minimum_tick_size: f64,
+    #[serde(default)]
+    pub seconds_delay: i32,
+    #[serde(default)]
+    pub question: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub market_slug: Option<String>,
+    #[serde(default)]
+    pub end_date_iso: Option<String>,
+    #[serde(default)]
+    pub game_start_time: Option<String>,
+    #[serde(default)]
+    pub fpmm: Option<String>,
+    #[serde(default)]
+    pub maker_base_fee: i32,
+    #[serde(default)]
+    pub taker_base_fee: i32,
     #[serde(default)]
     pub neg_risk: bool,
     #[serde(default)]
-    pub min_tick_size: Option<String>,
+    pub neg_risk_market_id: Option<String>,
     #[serde(default)]
-    pub min_order_size: Option<String>,
+    pub neg_risk_request_id: Option<String>,
+    #[serde(default)]
+    pub notifications_enabled: bool,
+    #[serde(default)]
+    pub icon: Option<String>,
+    #[serde(default)]
+    pub image: Option<String>,
+    #[serde(default)]
+    pub rewards: Option<MarketRewards>,
+    #[serde(default)]
+    pub is_50_50_outcome: bool,
+    #[serde(default, deserialize_with = "deserialize_null_to_empty_vec")]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -241,10 +290,6 @@ pub struct SimplifiedMarketsResponse {
     pub next_cursor: String,
 }
 
-// ============================================================================
-// Trade Event Types
-// ============================================================================
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketTradeEvent {
     pub id: String,
@@ -253,15 +298,9 @@ pub struct MarketTradeEvent {
     pub timestamp: String,
     pub token_id: String,
     pub side: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub price: f64,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub size: f64,
 }
-
-// ============================================================================
-// Side enum for order operations
-// ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -279,11 +318,7 @@ impl std::fmt::Display for Side {
     }
 }
 
-// ============================================================================
-// Tick Size
-// ============================================================================
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TickSize {
     Size0_1,
     Size0_01,
