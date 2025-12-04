@@ -1,6 +1,5 @@
 //https://github.com/Polymarket/py-clob-client/blob/main/py_clob_client/endpoints.py
 
-
 /*
 * TODO: ORDERS for batch ordering is not implemented fully
 *

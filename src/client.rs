@@ -16,8 +16,8 @@ use crate::types::{
     BatchPriceResponse, BatchSpreadResponse, BookParams, CreateOrderOptions, FeeRateResponse,
     LastTradePriceResponse, LastTradesPriceEntry, Market, MarketOrderArgs, MarketTradeEvent,
     MarketsResponse, MidpointResponse, NegRiskResponse, OpenOrderParams, OrderArgs, OrderBook,
-    OrderType, PartialCreateOrderOptions, PriceResponse, ServerTime, Side, SimplifiedMarketsResponse,
-    SpreadResponse, TickSize, TickSizeResponse, TradeParams,
+    OrderType, PartialCreateOrderOptions, PriceResponse, ServerTime, Side,
+    SimplifiedMarketsResponse, SpreadResponse, TickSize, TickSizeResponse, TradeParams,
 };
 
 const L0: u8 = 0;
@@ -28,7 +28,7 @@ const L2: u8 = 2;
 // for hashmap structs (tick_size/neg_rist/fee_rates)
 // we require &mut self for the entire struct which is not necessary since we are just
 // modifying tick_size (via insert())
-// we need to constantly do sometihng like Arc::new() on clobclient if we want 
+// we need to constantly do sometihng like Arc::new() on clobclient if we want
 // to do sometihng non-trivial with different tasks
 // either have a rwlock or this might work if so it is preffered https://docs.rs/dashmap/latest/dashmap/
 // https://docs.rs/tokio/latest/tokio/sync/struct.RwLock.html

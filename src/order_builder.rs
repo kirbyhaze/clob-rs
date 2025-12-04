@@ -144,7 +144,7 @@ fn to_token_decimals(x: f64) -> u64 {
 }
 
 // TODO: this is in the order path as well which is called everytime
-// there might be optimizations here since it allocates a string 
+// there might be optimizations here since it allocates a string
 fn decimal_places(x: f64) -> u32 {
     let s = format!("{}", x);
     if let Some(pos) = s.find('.') {
