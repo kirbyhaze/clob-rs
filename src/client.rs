@@ -441,7 +441,7 @@ impl ClobClient {
     }
 
     pub async fn create_order(
-        &mut self,
+        &self,
         order_args: &OrderArgs,
         options: Option<PartialCreateOrderOptions>,
     ) -> Result<SignedOrder> {

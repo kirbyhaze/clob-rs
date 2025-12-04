@@ -1,4 +1,7 @@
-use clob_rs::{CreateOrderOptions, OrderArgs, OrderBuilder, Side, Signer, TickSize};
+use clob_rs::{
+    ApiCreds, ClobClient, CreateOrderOptions, OrderArgs, OrderBuilder, Side, Signer, TickSize,
+    POLY_PROXY,
+};
 
 const ZERO_ADDRESS: &str = "0x0000000000000000000000000000000000000000";
 
@@ -8,6 +11,22 @@ const POLYGON_CHAIN_ID: u64 = 137;
 
 fn create_test_signer() -> Signer {
     Signer::new(TEST_PRIVATE_KEY, POLYGON_CHAIN_ID).unwrap()
+}
+
+#[tokio::test]
+async fn test_create_client() {
+    let client = ClobClient::polygon()
+        .with_signer(TEST_PRIVATE_KEY)
+        .unwrap()
+        .with_funder(EXPECTED_ADDRESS)
+        .unwrap()
+        .with_signature_type(POLY_PROXY)
+        .with_creds(ApiCreds {
+            api_key: "api_key".to_string(),
+            api_secret: "api_secret".to_string(),
+            api_passphrase: "api_passphrase".to_string(),
+        });
+    assert_eq!(client.address(), Some(EXPECTED_ADDRESS.to_string()));
 }
 
 #[tokio::test]
