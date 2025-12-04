@@ -29,6 +29,7 @@ hex = "0.4"
 
 # Random for salt generation
 rand = "0.8"
+dashmap = "6.1.0"
 
 [dev-dependencies]
 alloy-primitives = "0.8"

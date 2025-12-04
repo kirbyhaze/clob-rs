@@ -1,6 +1,7 @@
 use reqwest::Client;
 use serde::Serialize;
 use std::collections::HashMap;
+use dashmap::DashMap;
 
 use crate::config::{END_CURSOR, FIRST_CURSOR};
 use crate::endpoints;
@@ -24,14 +25,6 @@ const L0: u8 = 0;
 const L1: u8 = 1;
 const L2: u8 = 2;
 
-// TODO:
-// for hashmap structs (tick_size/neg_rist/fee_rates)
-// we require &mut self for the entire struct which is not necessary since we are just
-// modifying tick_size (via insert())
-// we need to constantly do sometihng like Arc::new() on clobclient if we want
-// to do sometihng non-trivial with different tasks
-// either have a rwlock or this might work if so it is preffered https://docs.rs/dashmap/latest/dashmap/
-// https://docs.rs/tokio/latest/tokio/sync/struct.RwLock.html
 pub struct ClobClient {
     host: String,
     chain_id: u64,
@@ -40,9 +33,9 @@ pub struct ClobClient {
     creds: Option<ApiCreds>,
     order_builder: Option<OrderBuilder>,
     mode: u8,
-    tick_sizes: HashMap<String, TickSize>,
-    neg_risk: HashMap<String, bool>,
-    fee_rates: HashMap<String, i32>,
+    tick_sizes: DashMap<String, TickSize>,
+    neg_risk: DashMap<String, bool>,
+    fee_rates: DashMap<String, i32>,
 }
 
 impl ClobClient {
@@ -62,9 +55,9 @@ impl ClobClient {
             creds: None,
             order_builder: None,
             mode: L0,
-            tick_sizes: HashMap::new(),
-            neg_risk: HashMap::new(),
-            fee_rates: HashMap::new(),
+            tick_sizes: DashMap::new(),
+            neg_risk: DashMap::new(),
+            fee_rates: DashMap::new(),
         }
     }
 
@@ -276,9 +269,9 @@ impl ClobClient {
         self.post(endpoints::LAST_TRADES_PRICES, &body).await
     }
 
-    pub async fn get_tick_size(&mut self, token_id: &str) -> Result<TickSize> {
-        if let Some(&tick_size) = self.tick_sizes.get(token_id) {
-            return Ok(tick_size);
+    pub async fn get_tick_size(&self, token_id: &str) -> Result<TickSize> {
+        if let Some(tick_size) = self.tick_sizes.get(token_id) {
+            return Ok(*tick_size);
         }
 
         let url = format!("{}?token_id={}", endpoints::TICK_SIZE, token_id);
@@ -289,9 +282,9 @@ impl ClobClient {
         Ok(resp.minimum_tick_size)
     }
 
-    pub async fn get_neg_risk(&mut self, token_id: &str) -> Result<bool> {
-        if let Some(&neg_risk) = self.neg_risk.get(token_id) {
-            return Ok(neg_risk);
+    pub async fn get_neg_risk(&self, token_id: &str) -> Result<bool> {
+        if let Some(neg_risk) = self.neg_risk.get(token_id) {
+            return Ok(*neg_risk);
         }
 
         let url = format!("{}?token_id={}", endpoints::NEG_RISK, token_id);
@@ -301,9 +294,9 @@ impl ClobClient {
         Ok(resp.neg_risk)
     }
 
-    pub async fn get_fee_rate_bps(&mut self, token_id: &str) -> Result<i32> {
-        if let Some(&fee_rate) = self.fee_rates.get(token_id) {
-            return Ok(fee_rate);
+    pub async fn get_fee_rate_bps(&self, token_id: &str) -> Result<i32> {
+        if let Some(fee_rate) = self.fee_rates.get(token_id) {
+            return Ok(*fee_rate);
         }
 
         let url = format!("{}?token_id={}", endpoints::FEE_RATE, token_id);
