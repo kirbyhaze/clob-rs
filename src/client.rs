@@ -18,7 +18,7 @@ use crate::types::{
     LastTradePriceResponse, LastTradesPriceEntry, Market, MarketOrderArgs, MarketTradeEvent,
     MarketsResponse, MidpointResponse, NegRiskResponse, OpenOrderParams, OrderArgs, OrderBook,
     OrderType, PartialCreateOrderOptions, PriceResponse, ServerTime, Side,
-    SimplifiedMarketsResponse, SpreadResponse, TickSize, TickSizeResponse, TradeParams,
+    SimplifiedMarketsResponse, SpreadResponse, TickSize, TickSizeResponse, TradeParams, PostOrderResponse
 };
 
 const L0: u8 = 0;
@@ -521,7 +521,7 @@ impl ClobClient {
         &self,
         order: &SignedOrder,
         order_type: OrderType,
-    ) -> Result<serde_json::Value> {
+    ) -> Result<PostOrderResponse> {
         let (signer, creds) = self.assert_l2()?;
 
         let body = serde_json::json!({
