@@ -482,6 +482,24 @@ pub struct MarketTradeEvent {
     pub size: f64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostOrderResponse {
+    pub success:bool,
+    #[serde(rename = "errorMsg", default)]
+    pub error_msg: String,
+    #[serde(rename = "orderID", default)]
+    pub order_id: String,
+    #[serde(rename = "makingAmount", default)]
+    pub making_amount: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(rename = "takingAmount", default)]
+    pub taking_amount: String,
+    #[serde(default)]
+    pub order_hashes: Vec<String>,
+}
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Side {
